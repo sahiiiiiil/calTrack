@@ -4,7 +4,9 @@ import { View, Text, TextInput, Button, FlatList } from 'react-native';
 const CalorieTracker = () => {
   const [food, setFood] = useState('');
   const [calories, setCalories] = useState('');
+  const [protein, setProtein] = useState('');
   const [totalCalories, setTotalCalories] = useState(0);
+  const [goalProtein, setGoalProtein] = useState(0); // New state for goal protein
   const [foodEntries, setFoodEntries] = useState([]);
 
   const handleFoodChange = (text) => {
@@ -15,29 +17,35 @@ const CalorieTracker = () => {
     setCalories(text);
   };
 
+  const handleProteinChange = (text) => {
+    setProtein(text);
+  };
+
   const handleClearCalories = () => {
     setTotalCalories(0);
   };
 
   const handleAddCalories = () => {
     const enteredCalories = parseInt(calories, 10);
+    const enteredProtein = parseInt(protein, 10); // Parse protein input
 
-    if (!isNaN(enteredCalories) && food.trim() !== '') { //if calories is a number and food isn't blank
-      // Add the entered calories to the total
+    if (!isNaN(enteredCalories) && !isNaN(enteredProtein) && food.trim() !== '') {
       const newTotal = totalCalories + enteredCalories;
       setTotalCalories(newTotal);
       setFoodEntries((prevEntries) => [
-        ...prevEntries, //maintain prevEntries in our new created array
-        { food: food.trim(), calories: enteredCalories }, //.trim() removes white space from both sides of string
+        ...prevEntries,
+        { food: food.trim(), calories: enteredCalories, protein: enteredProtein }, // Include protein in the entry
       ]);
       setFood('');
       setCalories('');
+      setProtein('');
     }
   };
+
   const handleClearFoodEntries = () => {
     setFoodEntries([]);
-  }  
-
+  };
+  
   return (
     <View style={{ marginTop: 50, padding: 20 }}>
       <Text>Food:</Text>
@@ -66,7 +74,7 @@ const CalorieTracker = () => {
         <Text>Food Entries</Text>
         <FlatList //use flatlist to render all items
           data={foodEntries}
-          renderItem={({ item }) => (
+          renderItem={({ item }) => ( //takes each item in data
             <Text>{`${item.food}: ${item.calories} calories`}</Text>
           )}
         />
