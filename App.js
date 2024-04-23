@@ -1,5 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, FlatList, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = 'https://hkcxvbsjhcdgfjfrutcj.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrY3h2YnNqaGNkZ2ZqZnJ1dGNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMzODY2MTQsImV4cCI6MjAyODk2MjYxNH0.jjY6wmZdD3p2EyzueUDIxGgsb2227Rgzxi82uicBJtI';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const CalorieTracker = () => {
   const [food, setFood] = useState('');
@@ -13,6 +18,20 @@ const CalorieTracker = () => {
   const [totalProtein, setTotalProtein] = useState(0);
   const [foodEntries, setFoodEntries] = useState([]);
 
+  useEffect(() => {
+    const fetchFoodEntries = async () => {
+      const { data, error } = await supabase.from('food_entries').select('*');
+      if (error) {
+        console.error('Error fetching food entries:', error);
+      } else {
+        console.log('Food entries fetched:', data);
+        setFoodEntries(data);
+      }
+    };
+
+    fetchFoodEntries();
+  }, []);
+  
   const handleFoodChange = (text) => {
     setFood(text);
   };
