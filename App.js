@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, FlatList } from 'react-native';
+import { View, Text, TextInput, Button, FlatList, TouchableWithoutFeedback, Keyboard } from 'react-native';
 
 const CalorieTracker = () => {
   const [food, setFood] = useState('');
@@ -102,117 +102,130 @@ const CalorieTracker = () => {
   };
 
   const suggestedCalories = calculateSuggestedCalories();
+  const suggestedCaloriesPercentage = (totalCalories / suggestedCalories) * 100;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#add8e6', marginTop: 0, padding: 20 }}>
-      <Text
-        style={{
-          fontFamily: 'Lucida Calligraphy', // Fancy cursive font
-          fontSize: 40,
-          color: 'white',
-          marginBottom: 20,
-          textAlign: 'center',
-        }}
-      >
-        Calorie Tracker
-      </Text>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={{ flex: 1, backgroundColor: '#add8e6', marginTop: 0, padding: 20 }}>
+        <Text
+          style={{
+            fontFamily: 'Lucida Calligraphy', // Fancy cursive font
+            fontSize: 40,
+            color: 'white',
+            marginBottom: 20,
+            textAlign: 'center',
+          }}
+        >
+          Calorie Tracker
+        </Text>
 
-      <View style={{ alignItems: 'center', marginVertical: 20 }}>
-        <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333' }}>Food Entries</Text>
-        <FlatList
-          data={foodEntries}
-          renderItem={({ item }) => (
-            <Text style={{ fontSize: 16, color: '#333' }}>{`${item.food}: ${item.calories} calories, ${item.protein}g protein`}</Text>
-          )}
-        />
-        <Button title="Clear Food Entries" onPress={handleClearFoodEntries} />
-      </View>
+        <View style={{ alignItems: 'center', marginVertical: 20 }}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333' }}>Food Entries</Text>
+          <FlatList
+            data={foodEntries}
+            renderItem={({ item }) => (
+              <Text style={{ fontSize: 16, color: '#333' }}>{`${item.food}: ${item.calories} calories, ${item.protein}g protein`}</Text>
+            )}
+          />
+          <Button title="Clear Food Entries" onPress={handleClearFoodEntries} />
+        </View>
 
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-        <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
-          <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Body Weight (lbs):</Text>
-          <TextInput
-            style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
-            value={bodyWeight}
-            onChangeText={handleBodyWeightChange}
-            keyboardType="numeric"
-          />
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+          <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
+            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Body Weight (lbs):</Text>
+            <TextInput
+              style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
+              value={bodyWeight}
+              onChangeText={handleBodyWeightChange}
+              keyboardType="numeric"
+              blurOnSubmit={true}
+            />
+          </View>
+          <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
+            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Goal Weight (lbs):</Text>
+            <TextInput
+              style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
+              value={goalWeight}
+              onChangeText={handleGoalWeightChange}
+              keyboardType="numeric"
+              blurOnSubmit={true}
+            />
+          </View>
         </View>
-        <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
-          <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Goal Weight (lbs):</Text>
-          <TextInput
-            style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
-            value={goalWeight}
-            onChangeText={handleGoalWeightChange}
-            keyboardType="numeric"
-          />
-        </View>
-      </View>
 
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-        <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
-          <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Age:</Text>
-          <TextInput
-            style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
-            value={age}
-            onChangeText={handleAgeChange}
-            keyboardType="numeric"
-          />
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+          <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
+            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Age:</Text>
+            <TextInput
+              style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
+              value={age}
+              onChangeText={handleAgeChange}
+              keyboardType="numeric"
+              blurOnSubmit={true}
+            />
+          </View>
+          <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
+            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Sex:</Text>
+            <TextInput
+              style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
+              value={sex}
+              onChangeText={handleSexChange}
+              blurOnSubmit={true}
+            />
+          </View>
         </View>
-        <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
-          <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Sex:</Text>
-          <TextInput
-            style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
-            value={sex}
-            onChangeText={handleSexChange}
-          />
-        </View>
-      </View>
 
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-        <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
-          <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Food:</Text>
-          <TextInput
-            style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
-            value={food}
-            onChangeText={handleFoodChange}
-          />
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+          <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
+            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Food:</Text>
+            <TextInput
+              style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
+              value={food}
+              onChangeText={handleFoodChange}
+            />
+          </View>
+          <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
+            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Calories:</Text>
+            <TextInput
+              style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
+              value={calories}
+              onChangeText={handleCaloriesChange}
+              keyboardType="numeric"
+              blurOnSubmit={true}
+            />
+          </View>
         </View>
-        <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
-          <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Calories:</Text>
-          <TextInput
-            style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
-            value={calories}
-            onChangeText={handleCaloriesChange}
-            keyboardType="numeric"
-          />
-        </View>
-        <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
+
+        <View style={{ alignItems: 'center', marginBottom: 10 }}>
           <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Protein (g):</Text>
           <TextInput
             style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
             value={protein}
             onChangeText={handleProteinChange}
             keyboardType="numeric"
+            blurOnSubmit={true}
           />
         </View>
-      </View>
 
-      <Button title="Add Calories & Protein" onPress={handleAddCalories} />
+        <Button title="Add Calories & Protein" onPress={handleAddCalories} />
 
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 10 }}>
-        <Text style={{ color: '#333' }}>Total Calories: {totalCalories}</Text>
-        <Button title="Clear Calories" onPress={handleClearCalories} />
-      </View>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 10 }}>
+          <Text style={{ color: '#333' }}>Total Calories: {totalCalories}</Text>
+          <Button title="Clear Calories" onPress={handleClearCalories} />
+        </View>
 
-      <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginVertical: 10 }}>
-        <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Total Protein: {totalProtein}g</Text>
-        <View style={{ marginLeft: 20 }}>
-          <Button title="Clear Protein" onPress={handleClearProtein} />
-          <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Suggested Calories: {suggestedCalories}</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginVertical: 10 }}>
+          <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Total Protein: {totalProtein}g</Text>
+          <View style={{ marginLeft: 20 }}>
+            <Button title="Clear Protein" onPress={handleClearProtein} />
+            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Suggested Calories: {suggestedCalories}</Text>
+            <View style={{ width: '80%', height: 10, backgroundColor: 'lightgray', borderRadius: 5, marginTop: 5 }}>
+              <View style={{ width: `${suggestedCaloriesPercentage}%`, height: '100%', backgroundColor: 'green', borderRadius: 5 }} />
+            </View>
+          </View>
         </View>
       </View>
-    </View>
+    </TouchableWithoutFeedback>
   );
 };
 
