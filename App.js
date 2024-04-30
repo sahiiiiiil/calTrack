@@ -185,6 +185,7 @@ const CalorieTracker = () => {
               blurOnSubmit={true}
             />
           </View>
+
           <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
             <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Goal Weight (lbs):</Text>
             <TextInput
@@ -272,7 +273,7 @@ const CalorieTracker = () => {
               <View style={{ width: `${suggestedCaloriesPercentage}%`, height: '100%', backgroundColor: 'purple', borderRadius: 5 }} />
             </View>
             <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Suggested Protein: {suggestedProtein}g</Text>
-            <Text style={{ fontSize: 40 }}>{calorieFace}</Text>
+            <Text style={{ fontSize: 100 }}>{calorieFace}</Text>
           </View>
         </View>
       </View>
