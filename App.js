@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, FlatList, TouchableWithoutFeedback, Keyboard, TouchableOpacity } from 'react-native';
-import { createClient } from '@supabase/supabase-js';
-import { FontAwesome } from '@expo/vector-icons'; // Assuming you're using Expo for icons
+import { createClient, from } from '@supabase/supabase-js'
+import { FontAwesome } from '@expo/vector-icons';
 
 const supabaseUrl = 'https://hkcxvbsjhcdgfjfrutcj.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrY3h2YnNqaGNkZ2ZqZnJ1dGNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMzODY2MTQsImV4cCI6MjAyODk2MjYxNH0.jjY6wmZdD3p2EyzueUDIxGgsb2227Rgzxi82uicBJtI';
@@ -19,21 +19,29 @@ const CalorieTracker = () => {
   const [totalProtein, setTotalProtein] = useState(0);
   const [foodEntries, setFoodEntries] = useState([]);
   const [calorieFace, setCalorieFace] = useState('😐'); // Default neutral face
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     const fetchFoodEntries = async () => {
-      const { data, error } = await supabase.from('food_entries').select('*');
-      if (error) {
-        console.error('Error fetching food entries:', error);
-      } else {
-        console.log('Food entries fetched:', data);
-        setFoodEntries(data);
+      try {
+        const { data, error } = await supabase
+          .from('food_entries')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (error) {
+          setErrorMessage('Error fetching food entries: ' + error.message);
+        } else {
+          console.log('Food entries fetched:', data);
+          setFoodEntries(data);
+        }
+      } catch (error) {
+        setErrorMessage('Unexpected error fetching food entries: ' + error.message);
       }
     };
 
     fetchFoodEntries();
   }, []);
-  
+
   useEffect(() => {
     // Update calorie face based on percentage of consumed calories
     const percentage = (totalCalories / suggestedCalories.suggestedCalories) * 100;
@@ -126,7 +134,7 @@ const CalorieTracker = () => {
     return { suggestedCalories: 0, suggestedProtein: 0 };
   };
 
-  const handleAddCalories = () => {
+  const handleAddCalories = async () => {
     const enteredCalories = parseInt(calories, 10);
     const enteredProtein = parseInt(protein, 10);
     if (!isNaN(enteredCalories) && !isNaN(enteredProtein) && food.trim() !== '') {
@@ -134,16 +142,29 @@ const CalorieTracker = () => {
       const newTotalProtein = totalProtein + enteredProtein;
       setTotalCalories(newTotal);
       setTotalProtein(newTotalProtein);
-      setFoodEntries((prevEntries) => [
-        ...prevEntries,
-        { food: food.trim(), calories: enteredCalories, protein: enteredProtein },
-      ]);
+      const newEntry = { food: food.trim(), calories: enteredCalories, protein: enteredProtein };
+      setFoodEntries((prevEntries) => [...prevEntries, newEntry]);
+  
+      try {
+        // Attempt to insert the new entry into the Supabase table
+        const { error } = await supabase
+          .from('food_entries')
+          .insert(newEntry);
+        if (error) {
+          setErrorMessage('Error inserting food entry: ' + error.message);
+        } else {
+          console.log('New food entry inserted successfully');
+        }
+      } catch (error) {
+        setErrorMessage('Unexpected error inserting food entry: ' + error.message);
+      }
+  
+      // Reset input fields
       setFood('');
       setCalories('');
       setProtein('');
     }
   };
-
   const suggestedCalories = calculateSuggestedCalories();
   const suggestedCaloriesPercentage = (totalCalories / suggestedCalories.suggestedCalories) * 100;
   const suggestedProtein = suggestedCalories.suggestedProtein;
@@ -162,6 +183,8 @@ const CalorieTracker = () => {
         >
           Calorie Tracker
         </Text>
+
+        {errorMessage ? <Text style={{ color: 'red', marginBottom: 10 }}>{errorMessage}</Text> : null}
 
         <View style={{ alignItems: 'center', marginVertical: 20 }}>
           <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333' }}>Food Entries</Text>
