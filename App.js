@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, FlatList, TouchableWithoutFeedback, Keyboard, TouchableOpacity } from 'react-native';
-import { createClient, from } from '@supabase/supabase-js'
+import { createClient, from } from '@supabase/supabase-js';
 import { FontAwesome } from '@expo/vector-icons';
 
 const supabaseUrl = 'https://hkcxvbsjhcdgfjfrutcj.supabase.co';
@@ -90,10 +90,36 @@ const CalorieTracker = () => {
     setTotalProtein(0);
   };
 
-  const handleClearFoodEntries = () => {
-    setFoodEntries([]);
-  };
+  const handleClearFoodEntries = async () => {
+    try {
+        // Retrieve all rows from the food_entries table
+        const { data: foodEntries, error: fetchError } = await supabase
+            .from('food_entries')
+            .select('id');
 
+        if (fetchError) {
+            throw new Error('Error fetching food entries: ' + fetchError.message);
+        }
+
+        // Delete each row one by one
+        for (const entry of foodEntries) {
+            const { error: deleteError } = await supabase
+                .from('food_entries')
+                .delete()
+                .eq('id', entry.id);
+
+            if (deleteError) {
+                throw new Error('Error deleting food entry with ID ' + entry.id + ': ' + deleteError.message);
+            }
+        }
+
+        // After all rows are deleted, clear the local state
+        setFoodEntries([]);
+        console.log('All food entries cleared successfully');
+    } catch (error) {
+        setErrorMessage('Unexpected error clearing food entries: ' + error.message);
+    }
+};
   const calculateSuggestedCalories = () => {
     if (bodyWeight && age && sex && goalWeight) {
       const currentBodyWeight = parseFloat(bodyWeight);
@@ -142,9 +168,9 @@ const CalorieTracker = () => {
       const newTotalProtein = totalProtein + enteredProtein;
       setTotalCalories(newTotal);
       setTotalProtein(newTotalProtein);
-      const newEntry = { food: food.trim(), calories: enteredCalories, protein: enteredProtein };
+      const newEntry = { food_name: food.trim(), calories: enteredCalories, protein: enteredProtein };
       setFoodEntries((prevEntries) => [...prevEntries, newEntry]);
-  
+
       try {
         // Attempt to insert the new entry into the Supabase table
         const { error } = await supabase
@@ -158,7 +184,7 @@ const CalorieTracker = () => {
       } catch (error) {
         setErrorMessage('Unexpected error inserting food entry: ' + error.message);
       }
-  
+
       // Reset input fields
       setFood('');
       setCalories('');
@@ -191,7 +217,7 @@ const CalorieTracker = () => {
           <FlatList
             data={foodEntries}
             renderItem={({ item }) => (
-              <Text style={{ fontSize: 16, color: '#333' }}>{`${item.food}: ${item.calories} calories, ${item.protein}g protein`}</Text>
+              <Text style={{ fontSize: 16, color: '#333' }}>{`${item.food_name}: ${item.calories} calories, ${item.protein}g protein`}</Text>
             )}
           />
           <Button title="Clear Food Entries" onPress={handleClearFoodEntries} />
