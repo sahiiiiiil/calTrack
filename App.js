@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, FlatList, TouchableWithoutFeedback, Keyboard, TouchableOpacity } from 'react-native';
 import { createClient, from } from '@supabase/supabase-js';
 import { FontAwesome } from '@expo/vector-icons';
+import axios from 'axios';
 
 const supabaseUrl = 'https://hkcxvbsjhcdgfjfrutcj.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrY3h2YnNqaGNkZ2ZqZnJ1dGNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMzODY2MTQsImV4cCI6MjAyODk2MjYxNH0.jjY6wmZdD3p2EyzueUDIxGgsb2227Rgzxi82uicBJtI';
@@ -18,7 +19,7 @@ const CalorieTracker = () => {
   const [totalCalories, setTotalCalories] = useState(0);
   const [totalProtein, setTotalProtein] = useState(0);
   const [foodEntries, setFoodEntries] = useState([]);
-  const [calorieFace, setCalorieFace] = useState('😐'); // Default neutral face
+  const [calorieFace, setCalorieFace] = useState('😐');
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
@@ -43,14 +44,13 @@ const CalorieTracker = () => {
   }, []);
 
   useEffect(() => {
-    // Update calorie face based on percentage of consumed calories
     const percentage = (totalCalories / suggestedCalories.suggestedCalories) * 100;
     if (percentage < 10) {
-      setCalorieFace('😢'); // Sad face
+      setCalorieFace('😢');
     } else if (percentage >= 10 && percentage <= 70) {
-      setCalorieFace('😐'); // Neutral face
+      setCalorieFace('😐');
     } else {
-      setCalorieFace('😊'); // Happy face
+      setCalorieFace('😊');
     }
   }, [totalCalories]);
 
@@ -92,40 +92,38 @@ const CalorieTracker = () => {
 
   const handleClearFoodEntries = async () => {
     try {
-        // Retrieve all rows from the food_entries table
-        const { data: foodEntries, error: fetchError } = await supabase
-            .from('food_entries')
-            .select('id');
+      const { data: foodEntries, error: fetchError } = await supabase
+        .from('food_entries')
+        .select('id');
 
-        if (fetchError) {
-            throw new Error('Error fetching food entries: ' + fetchError.message);
+      if (fetchError) {
+        throw new Error('Error fetching food entries: ' + fetchError.message);
+      }
+
+      for (const entry of foodEntries) {
+        const { error: deleteError } = await supabase
+          .from('food_entries')
+          .delete()
+          .eq('id', entry.id);
+
+        if (deleteError) {
+          throw new Error('Error deleting food entry with ID ' + entry.id + ': ' + deleteError.message);
         }
+      }
 
-        // Delete each row one by one
-        for (const entry of foodEntries) {
-            const { error: deleteError } = await supabase
-                .from('food_entries')
-                .delete()
-                .eq('id', entry.id);
-
-            if (deleteError) {
-                throw new Error('Error deleting food entry with ID ' + entry.id + ': ' + deleteError.message);
-            }
-        }
-
-        // After all rows are deleted, clear the local state
-        setFoodEntries([]);
-        console.log('All food entries cleared successfully');
+      setFoodEntries([]);
+      console.log('All food entries cleared successfully');
     } catch (error) {
-        setErrorMessage('Unexpected error clearing food entries: ' + error.message);
+      setErrorMessage('Unexpected error clearing food entries: ' + error.message);
     }
-};
+  };
+
   const calculateSuggestedCalories = () => {
     if (bodyWeight && age && sex && goalWeight) {
       const currentBodyWeight = parseFloat(bodyWeight);
       const targetBodyWeight = parseFloat(goalWeight);
-      let suggestedCalories = currentBodyWeight * 15; // Default value
-      let suggestedProtein = currentBodyWeight; // Default value
+      let suggestedCalories = currentBodyWeight * 15;
+      let suggestedProtein = currentBodyWeight;
 
       if (targetBodyWeight < currentBodyWeight) {
         suggestedCalories = targetBodyWeight * 15 - 500;
@@ -172,7 +170,6 @@ const CalorieTracker = () => {
       setFoodEntries((prevEntries) => [...prevEntries, newEntry]);
 
       try {
-        // Attempt to insert the new entry into the Supabase table
         const { error } = await supabase
           .from('food_entries')
           .insert(newEntry);
@@ -185,22 +182,38 @@ const CalorieTracker = () => {
         setErrorMessage('Unexpected error inserting food entry: ' + error.message);
       }
 
-      // Reset input fields
       setFood('');
       setCalories('');
       setProtein('');
     }
   };
+ 
+  const fetchNutritionData = async (foodName) => {
+    try {
+      const apiKey = 'R+iBH3ZstspvdxGL+yw+2Q==ekOqNyfQ1OzSye94';
+      const response = await axios.get(`https://api.calorieninjas.com/v1/nutrition?query=${foodName}`, {
+        headers: {
+          'X-Api-Key': apiKey,
+        },
+      });
+ 
+      console.log(response.data);
+      // You can further process the response data as needed
+    } catch (error) {
+      console.error('Error fetching nutrition data:', error);
+    }
+  };
+ 
   const suggestedCalories = calculateSuggestedCalories();
   const suggestedCaloriesPercentage = (totalCalories / suggestedCalories.suggestedCalories) * 100;
   const suggestedProtein = suggestedCalories.suggestedProtein;
-
+ 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={{ flex: 1, backgroundColor: '#add8e6', marginTop: 0, padding: 20 }}>
         <Text
           style={{
-            fontFamily: 'Lucida Calligraphy', // Fancy cursive font
+            fontFamily: 'Lucida Calligraphy',
             fontSize: 40,
             color: 'white',
             marginBottom: 20,
@@ -209,9 +222,9 @@ const CalorieTracker = () => {
         >
           Calorie Tracker
         </Text>
-
+ 
         {errorMessage ? <Text style={{ color: 'red', marginBottom: 10 }}>{errorMessage}</Text> : null}
-
+ 
         <View style={{ alignItems: 'center', marginVertical: 20 }}>
           <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333' }}>Food Entries</Text>
           <FlatList
@@ -222,7 +235,7 @@ const CalorieTracker = () => {
           />
           <Button title="Clear Food Entries" onPress={handleClearFoodEntries} />
         </View>
-
+ 
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
           <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
             <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Body Weight (lbs):</Text>
@@ -234,7 +247,7 @@ const CalorieTracker = () => {
               blurOnSubmit={true}
             />
           </View>
-
+ 
           <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
             <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Goal Weight (lbs):</Text>
             <TextInput
@@ -246,7 +259,7 @@ const CalorieTracker = () => {
             />
           </View>
         </View>
-
+ 
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
           <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
             <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Age:</Text>
@@ -273,7 +286,7 @@ const CalorieTracker = () => {
             </View>
           </View>
         </View>
-
+ 
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
           <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
             <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Food:</Text>
@@ -294,25 +307,28 @@ const CalorieTracker = () => {
             />
           </View>
         </View>
-
-        <View style={{ alignItems: 'center', marginBottom: 10 }}>
-          <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Protein (g):</Text>
-          <TextInput
-            style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
-            value={protein}
-            onChangeText={handleProteinChange}
-            keyboardType="numeric"
-            blurOnSubmit={true}
-          />
+ 
+        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
+          <Button title="Get Nutrition" onPress={() => fetchNutritionData(food)} />
+          <View style={{ marginLeft: 10 }}>
+            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Protein (g):</Text>
+            <TextInput
+              style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
+              value={protein}
+              onChangeText={handleProteinChange}
+              keyboardType="numeric"
+              blurOnSubmit={true}
+            />
+          </View>
         </View>
-
+ 
         <Button title="Add Calories & Protein" onPress={handleAddCalories} />
-
+ 
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 10 }}>
           <Text style={{ color: '#333' }}>Total Calories: {totalCalories}</Text>
           <Button title="Clear Calories" onPress={handleClearCalories} />
         </View>
-
+ 
         <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginVertical: 10 }}>
           <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Total Protein: {totalProtein}g</Text>
           <View style={{ marginLeft: 20 }}>
@@ -320,14 +336,13 @@ const CalorieTracker = () => {
             <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Suggested Calories: {suggestedCalories.suggestedCalories}</Text>
             <View style={{ width: '100%', height: 20, backgroundColor: 'lightgray', borderRadius: 5, marginTop: 5 }}>
               <View style={{ width: `${suggestedCaloriesPercentage}%`, height: '100%', backgroundColor: 'purple', borderRadius: 5 }} />
-            </View>
-            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Suggested Protein: {suggestedProtein}g</Text>
-            <Text style={{ fontSize: 100 }}>{calorieFace}</Text>
-          </View>
-        </View>
-      </View>
-    </TouchableWithoutFeedback>
+  </View>
+  <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Suggested Protein: {suggestedProtein}g</Text>
+  <Text style={{ fontSize: 100 }}>{calorieFace}</Text>
+  </View>
+  </View>
+  </View>
+  </TouchableWithoutFeedback>
   );
 };
-
 export default CalorieTracker;
