@@ -1,14 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, FlatList, TouchableWithoutFeedback, Keyboard, TouchableOpacity } from 'react-native';
-import { createClient, from } from '@supabase/supabase-js';
+import { View, Text, TextInput, Button, FlatList, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { createClient } from '@supabase/supabase-js';
 import { FontAwesome } from '@expo/vector-icons';
+import * as Application from 'expo-application';
+import { TouchableOpacity } from 'react-native';
 import axios from 'axios';
 
 const supabaseUrl = 'https://hkcxvbsjhcdgfjfrutcj.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrY3h2YnNqaGNkZ2ZqZnJ1dGNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMzODY2MTQsImV4cCI6MjAyODk2MjYxNH0.jjY6wmZdD3p2EyzueUDIxGgsb2227Rgzxi82uicBJtI';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const CalorieTracker = () => {
+
+const App = () => {
+  const [deviceId, setDeviceId] = useState('');
+
+  useEffect(() => {
+    const fetchDeviceId = async () => {
+      const iosId = await Application.getIosIdForVendorAsync();
+      setDeviceId(iosId);
+    };
+
+    fetchDeviceId();
+  }, []);
+
+  useEffect(() => {
+    console.log('Device ID:', deviceId);
+  }, [deviceId]);
   const [food, setFood] = useState('');
   const [calories, setCalories] = useState('');
   const [protein, setProtein] = useState('');
@@ -28,6 +45,7 @@ const CalorieTracker = () => {
         const { data, error } = await supabase
           .from('food_entries')
           .select('*')
+          .eq('device_id', deviceId) // Filter by device_id
           .order('created_at', { ascending: false });
         if (error) {
           setErrorMessage('Error fetching food entries: ' + error.message);
@@ -41,7 +59,7 @@ const CalorieTracker = () => {
     };
 
     fetchFoodEntries();
-  }, []);
+  }, [deviceId]);
 
   useEffect(() => {
     const percentage = (totalCalories / suggestedCalories.suggestedCalories) * 100;
@@ -94,7 +112,8 @@ const CalorieTracker = () => {
     try {
       const { data: foodEntries, error: fetchError } = await supabase
         .from('food_entries')
-        .select('id');
+        .select('id')
+        .eq('device_id', deviceId); // Filter by device_id
 
       if (fetchError) {
         throw new Error('Error fetching food entries: ' + fetchError.message);
@@ -166,7 +185,7 @@ const CalorieTracker = () => {
       const newTotalProtein = totalProtein + enteredProtein;
       setTotalCalories(newTotal);
       setTotalProtein(newTotalProtein);
-      const newEntry = { food_name: food.trim(), calories: enteredCalories, protein: enteredProtein };
+      const newEntry = { food_name: food.trim(), calories: enteredCalories, protein: enteredProtein, device_id: deviceId };
       setFoodEntries((prevEntries) => [...prevEntries, newEntry]);
 
       try {
@@ -174,175 +193,188 @@ const CalorieTracker = () => {
           .from('food_entries')
           .insert(newEntry);
         if (error) {
-          setErrorMessage('Error inserting food entry: ' + error.message);
+          setErrorMessage('Error inserting food entry: ' + error.message);} else {
+            console.log('New food entry inserted successfully');
+          }
+        } catch (error) {
+          setErrorMessage('Unexpected error inserting food entry: ' + error.message);
+        }
+   
+        setFood('');
+        setCalories('');
+        setProtein('');
+      }
+    };
+   
+    const fetchNutritionData = async (foodName) => {
+      try {
+        const apiKey = 'R+iBH3ZstspvdxGL+yw+2Q==ekOqNyfQ1OzSye94';
+        const response = await axios.get(`https://api.calorieninjas.com/v1/nutrition?query=${foodName}`, {
+          headers: {
+            'X-Api-Key': apiKey,
+          },
+        });
+   
+        const responseData = JSON.stringify(response.data);
+        console.log(responseData);
+   
+        const caloriesIndex = responseData.indexOf('"calories":');
+        const proteinIndex = responseData.indexOf('"protein_g":');
+   
+        if (caloriesIndex !== -1 && proteinIndex !== -1) {
+          const calories = parseFloat(responseData.substring(caloriesIndex + 11, responseData.indexOf(',', caloriesIndex)));
+          const protein = parseFloat(responseData.substring(proteinIndex + 12, responseData.indexOf(',', proteinIndex)));
+   
+          setCalories(calories.toFixed(2).toString());
+          setProtein(protein.toFixed(2).toString());
         } else {
-          console.log('New food entry inserted successfully');
+          console.log('No nutrition data found for the given food item.');
         }
       } catch (error) {
-        setErrorMessage('Unexpected error inserting food entry: ' + error.message);
+        console.error('Error fetching nutrition data:', error);
       }
-
-      setFood('');
-      setCalories('');
-      setProtein('');
-    }
-  };
- 
-  const fetchNutritionData = async (foodName) => {
-    try {
-      const apiKey = 'R+iBH3ZstspvdxGL+yw+2Q==ekOqNyfQ1OzSye94';
-      const response = await axios.get(`https://api.calorieninjas.com/v1/nutrition?query=${foodName}`, {
-        headers: {
-          'X-Api-Key': apiKey,
-        },
-      });
- 
-      console.log(response.data);
-      // You can further process the response data as needed
-    } catch (error) {
-      console.error('Error fetching nutrition data:', error);
-    }
-  };
- 
-  const suggestedCalories = calculateSuggestedCalories();
-  const suggestedCaloriesPercentage = (totalCalories / suggestedCalories.suggestedCalories) * 100;
-  const suggestedProtein = suggestedCalories.suggestedProtein;
- 
-  return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={{ flex: 1, backgroundColor: '#add8e6', marginTop: 0, padding: 20 }}>
-        <Text
-          style={{
-            fontFamily: 'Lucida Calligraphy',
-            fontSize: 40,
-            color: 'white',
-            marginBottom: 20,
-            textAlign: 'center',
-          }}
-        >
-          Calorie Tracker
-        </Text>
- 
-        {errorMessage ? <Text style={{ color: 'red', marginBottom: 10 }}>{errorMessage}</Text> : null}
- 
-        <View style={{ alignItems: 'center', marginVertical: 20 }}>
-          <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333' }}>Food Entries</Text>
-          <FlatList
-            data={foodEntries}
-            renderItem={({ item }) => (
-              <Text style={{ fontSize: 16, color: '#333' }}>{`${item.food_name}: ${item.calories} calories, ${item.protein}g protein`}</Text>
-            )}
-          />
-          <Button title="Clear Food Entries" onPress={handleClearFoodEntries} />
-        </View>
- 
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-          <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
-            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Body Weight (lbs):</Text>
-            <TextInput
-              style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
-              value={bodyWeight}
-              onChangeText={handleBodyWeightChange}
-              keyboardType="numeric"
-              blurOnSubmit={true}
+    };
+   
+    const suggestedCalories = calculateSuggestedCalories();
+    const suggestedCaloriesPercentage = (totalCalories / suggestedCalories.suggestedCalories) * 100;
+    const suggestedProtein = suggestedCalories.suggestedProtein;
+   
+    return (
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={{ flex: 1, backgroundColor: '#add8e6', marginTop: 0, padding: 20 }}>
+          <Text
+            style={{
+              fontFamily: 'Lucida Calligraphy',
+              fontSize: 40,
+              color: 'white',
+              marginBottom: 20,
+              textAlign: 'center',
+            }}
+          >
+            Calorie Tracker
+          </Text>
+   
+          {errorMessage ? <Text style={{ color: 'red', marginBottom: 10 }}>{errorMessage}</Text> : null}
+   
+          <View style={{ alignItems: 'center', marginVertical: 20 }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333' }}>Food Entries</Text>
+            <FlatList
+              data={foodEntries}
+              renderItem={({ item }) => (
+                <Text style={{ fontSize: 16, color: '#333' }}>{`${item.food_name}: ${item.calories} calories, ${item.protein}g protein`}</Text>
+              )}
             />
+            <Button title="Clear Food Entries" onPress={handleClearFoodEntries} />
           </View>
- 
-          <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
-            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Goal Weight (lbs):</Text>
-            <TextInput
-              style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
-              value={goalWeight}
-              onChangeText={handleGoalWeightChange}
-              keyboardType="numeric"
-              blurOnSubmit={true}
-            />
-          </View>
-        </View>
- 
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-          <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
-            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Age:</Text>
-            <TextInput
-              style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
-              value={age}
-              onChangeText={handleAgeChange}
-              keyboardType="numeric"
-              blurOnSubmit={true}
-            />
-          </View>
-          <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
-            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Sex:</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+   
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+            <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Body Weight (lbs):</Text>
               <TextInput
-                style={{ height: 40, width: 100, borderColor: 'gray', borderWidth: 1 }}
-                value={sex}
-                onChangeText={handleSexChange}
+                style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
+                value={bodyWeight}
+                onChangeText={handleBodyWeightChange}
+                keyboardType="numeric"
                 blurOnSubmit={true}
               />
-              <TouchableOpacity onPress={() => alert("Sex is only used to get a better understanding of what your suggested calories should be. Feel free to opt out of inputting sex if you would like to not use it.")}>
-                <FontAwesome name="info-circle" size={24} color="blue" />
-              </TouchableOpacity>
+            </View>
+   
+            <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Goal Weight (lbs):</Text>
+              <TextInput
+                style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
+                value={goalWeight}
+                onChangeText={handleGoalWeightChange}
+                keyboardType="numeric"
+                blurOnSubmit={true}
+              />
             </View>
           </View>
-        </View>
- 
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-          <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
-            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Food:</Text>
-            <TextInput
-              style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
-              value={food}
-              onChangeText={handleFoodChange}
-            />
+   
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+            <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Age:</Text>
+              <TextInput
+                style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
+                value={age}
+                onChangeText={handleAgeChange}
+                keyboardType="numeric"
+                blurOnSubmit={true}
+              />
+            </View>
+            <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Sex:</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <TextInput
+                  style={{ height: 40, width: 100, borderColor: 'gray', borderWidth: 1 }}
+                  value={sex}
+                  onChangeText={handleSexChange}
+                  blurOnSubmit={true}
+                />
+                <TouchableOpacity onPress={() => alert("Sex is only used to get a better understanding of what your suggested calories should be. Feel free to opt out of inputting sex if you would like to not use it.")}>
+                  <FontAwesome name="info-circle" size={24} color="blue" />
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
-          <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
-            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Calories:</Text>
-            <TextInput
-              style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
-              value={calories}
-              onChangeText={handleCaloriesChange}
-              keyboardType="numeric"
-              blurOnSubmit={true}
-            />
+   
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+            <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Food:</Text>
+              <TextInput
+                style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
+                value={food}
+                onChangeText={handleFoodChange}
+              />
+            </View>
+            <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Calories:</Text>
+              <TextInput
+                style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
+                value={calories}
+                onChangeText={handleCaloriesChange}
+                keyboardType="numeric"
+                blurOnSubmit={true}
+              />
+            </View>
           </View>
-        </View>
- 
-        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
-          <Button title="Get Nutrition" onPress={() => fetchNutritionData(food)} />
-          <View style={{ marginLeft: 10 }}>
-            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Protein (g):</Text>
-            <TextInput
-              style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
-              value={protein}
-              onChangeText={handleProteinChange}
-              keyboardType="numeric"
-              blurOnSubmit={true}
-            />
+   
+          <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
+            <Button title="Get Nutrition" onPress={() => fetchNutritionData(food)} />
+            <View style={{ marginLeft: 10 }}>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Protein (g):</Text>
+              <TextInput
+                style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
+                value={protein}
+                onChangeText={handleProteinChange}
+                keyboardType="numeric"
+                blurOnSubmit={true}
+              />
+            </View>
           </View>
-        </View>
- 
-        <Button title="Add Calories & Protein" onPress={handleAddCalories} />
- 
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 10 }}>
-          <Text style={{ color: '#333' }}>Total Calories: {totalCalories}</Text>
-          <Button title="Clear Calories" onPress={handleClearCalories} />
-        </View>
- 
-        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginVertical: 10 }}>
-          <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Total Protein: {totalProtein}g</Text>
-          <View style={{ marginLeft: 20 }}>
-            <Button title="Clear Protein" onPress={handleClearProtein} />
-            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Suggested Calories: {suggestedCalories.suggestedCalories}</Text>
-            <View style={{ width: '100%', height: 20, backgroundColor: 'lightgray', borderRadius: 5, marginTop: 5 }}>
-              <View style={{ width: `${suggestedCaloriesPercentage}%`, height: '100%', backgroundColor: 'purple', borderRadius: 5 }} />
-  </View>
-  <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Suggested Protein: {suggestedProtein}g</Text>
-  <Text style={{ fontSize: 100 }}>{calorieFace}</Text>
-  </View>
-  </View>
-  </View>
-  </TouchableWithoutFeedback>
-  );
+   
+          <Button title="Add Calories & Protein" onPress={handleAddCalories} />
+   
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 10 }}>
+            <Text style={{ color: '#333' }}>Total Calories: {totalCalories}</Text>
+            <Button title="Clear Calories" onPress={handleClearCalories} />
+       </View>
+
+       <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginVertical: 10 }}>
+         <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Total Protein: {totalProtein}g</Text>
+         <View style={{ marginLeft: 20 }}>
+           <Button title="Clear Protein" onPress={handleClearProtein} />
+           <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Suggested Calories: {suggestedCalories.suggestedCalories}</Text>
+           <View style={{ width: '100%', height: 20, backgroundColor: 'lightgray', borderRadius: 5, marginTop: 5 }}>
+             <View style={{ width: `${suggestedCaloriesPercentage}%`, height: '100%', backgroundColor: 'purple', borderRadius: 5 }} />
+           </View>
+           <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Suggested Protein: {suggestedProtein}g</Text>
+           <Text style={{ fontSize: 100 }}>{calorieFace}</Text>
+         </View>
+       </View>
+     </View>
+   </TouchableWithoutFeedback>
+ );
 };
-export default CalorieTracker;
+
+export default App;
