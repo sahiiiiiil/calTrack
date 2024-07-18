@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "calTrack",
-    "slug": "calTrack",
+    "name": "CalTrack",
+    "slug": "CalTrack",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -15,7 +15,8 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.sahil321.CalTrack"
     },
     "android": {
       "adaptiveIcon": {
@@ -25,6 +26,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "5a46cb98-fb95-4fc2-9e83-4973737864f0"
+      }
     }
   }
 }

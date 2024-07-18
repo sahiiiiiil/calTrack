@@ -102,7 +102,7 @@ const ProfileScreen = () => {
     <View style={{ flex: 1, padding: 20 }}>
       <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 20 }}>Profile</Text>
       <View style={{ marginBottom: 10 }}>
-        <Text style={{ fontSize: 16, fontWeight: 'bold' }}>Sex:</Text>
+        <Text style={{ fontSize: 16, fontWeight: 'bold' }}>Sex (male or female):</Text>
         <TextInput
           style={{ height: 40, borderColor: 'gray', borderWidth: 1 }}
           value={sexState}

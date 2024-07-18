@@ -5,7 +5,8 @@ import * as Application from 'expo-application';
 import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
 import { useIsFocused } from '@react-navigation/native';
-
+import { ScrollView } from 'react-native';
+import { TouchableOpacity } from 'react-native';
 const supabaseUrl = 'https://hkcxvbsjhcdgfjfrutcj.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrY3h2YnNqaGNkZ2ZqZnJ1dGNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMzODY2MTQsImV4cCI6MjAyODk2MjYxNH0.jjY6wmZdD3p2EyzueUDIxGgsb2227Rgzxi82uicBJtI';
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -115,6 +116,7 @@ const MainScreen = () => {
   
     fetchTotalCaloriesAndProtein();
   }, [deviceId, foodEntries]);
+
   useEffect(() => {
     const percentage = (totalCalories / calculateSuggestedCalories().suggestedCalories) * 100;
     if (percentage < 10) {
@@ -199,7 +201,8 @@ const MainScreen = () => {
           suggestedCalories += 400;
           suggestedProtein *= 1.0;
         } else if (ageInt >= 31 && ageInt <= 60) {
-          suggestedCalories += 200;suggestedProtein *= 1.0;
+          suggestedCalories += 200;
+          suggestedProtein *= 1.0;
         }
       } else if (sex === 'female') {
         if (ageInt >= 31 && ageInt <= 60) {
@@ -219,26 +222,51 @@ const MainScreen = () => {
     return { suggestedCalories: Math.round(suggestedCalories), suggestedProtein: Math.round(suggestedProtein) };
   };
 
+  const CustomButton = ({ title, onPress }) => (
+    <View
+      style={{
+        backgroundColor: '#FFFFFF',
+        borderColor: 'pink',
+        borderWidth: 2,
+        borderRadius: 8,
+        padding: 9,
+        marginVertical: 6,
+      }}
+    >
+      <TouchableOpacity onPress={onPress}>
+        <Text
+          style={{
+            color: 'black',
+            fontWeight: 'bold',
+            textAlign: 'center',
+          }}
+        >
+          {title}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+  
   const handleAddCalories = async () => {
     const enteredCalories = parseInt(calories, 10);
     const enteredProtein = parseInt(protein, 10);
     if (!isNaN(enteredCalories) && !isNaN(enteredProtein) && food.trim() !== '') {
       const newEntry = { food_name: food.trim(), calories: enteredCalories, protein: enteredProtein, device_id: deviceId };
-      setFoodEntries((prevEntries) => [...prevEntries, newEntry]);
-
+  
       try {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('food_entries')
           .insert(newEntry);
         if (error) {
           setErrorMessage('Error inserting food entry: ' + error.message);
         } else {
           console.log('New food entry inserted successfully');
+          setFoodEntries((prevEntries) => [...prevEntries, newEntry]);
         }
       } catch (error) {
         setErrorMessage('Unexpected error inserting food entry: ' + error.message);
       }
-
+  
       setFood('');
       setCalories('');
       setProtein('');
@@ -274,104 +302,104 @@ const MainScreen = () => {
     }
   };
   
-
   const suggestedCalories = calculateSuggestedCalories();
   const suggestedCaloriesPercentage = (totalCalories / suggestedCalories.suggestedCalories) * 100;
   const suggestedProtein = suggestedCalories.suggestedProtein;
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={{ flex: 1, backgroundColor: '#add8e6', marginTop: 0, padding: 20 }}>
-        <Text
-          style={{
-            fontFamily: 'cursive',
-            fontSize: 40,
-            color: 'white',
-            marginBottom: 20,
-            textAlign: 'center',
-          }}
-        >
-          Calorie Tracker
-        </Text>
-        {errorMessage ? <Text style={{ color: 'red', marginBottom: 10 }}>{errorMessage}</Text> : null}
-
-        <View style={{ alignItems: 'center', marginVertical: 20 }}>
-          <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333' }}>Food Entries</Text>
-          <FlatList
-            data={foodEntries}
-            renderItem={({ item }) => (
-              <Text style={{ fontSize: 16, color: '#333' }}>{`${item.food_name}: ${item.calories} calories, ${item.protein}g protein`}</Text>
-            )}
-          />
-          <Button title="Clear Food Entries" onPress={handleClearFoodEntries} />
-        </View>
-
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-          <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
-            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Food:</Text>
-            <TextInput
-              style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
-              value={food}
-              onChangeText={handleFoodChange}
+      <ScrollView style={{ flex: 1, backgroundColor: '#add8e6' }}>
+        <View style={{ marginTop: 0, padding: 20 }}>
+          <Text
+            style={{
+              fontFamily: 'cursive',
+              fontSize: 40,
+              color: '#ff9a55',
+              fontWeight: "bold",
+              marginBottom: 20,
+              marginTop: 10,
+              textAlign: 'center',
+            }}
+          >
+            Calorie Tracker
+          </Text>
+          {errorMessage ? <Text style={{ color: 'red', marginBottom: 10 }}>{errorMessage}</Text> : null}
+  
+          <View style={{ alignItems: 'center', marginVertical: 20 }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333' }}>Food Entries</Text>
+            <FlatList
+              data={foodEntries}
+              renderItem={({ item }) => (
+                <Text style={{ fontSize: 16, color: '#333' }}>{`${item.food_name}: ${item.calories} calories, ${item.protein}g protein`}</Text>
+              )}
             />
+            <CustomButton title="Clear Food Entries" onPress={handleClearFoodEntries} />
           </View>
-          <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
-            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Calories:</Text>
-            <TextInput
-              style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
-              value={calories}
-              onChangeText={handleCaloriesChange}
-              keyboardType="numeric"
-              blurOnSubmit={true}
-            />
-          </View>
-        </View>
-
-        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
-          <Button title="Get Nutrition" onPress={() => fetchNutritionData(food)} />
-          <View style={{ marginLeft: 10 }}>
-            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Protein (g):</Text>
-            <TextInput
-              style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
-              value={protein}
-              onChangeText={handleProteinChange}
-              keyboardType="numeric"
-              blurOnSubmit={true}
-            />
-          </View>
-        </View>
-
-        <Button title="Add Calories & Protein" onPress={handleAddCalories} />
-
-        <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginVertical: 20 }}>
-          <View style={{ alignItems: 'center', borderWidth: 2, borderColor: 'pink', padding: 10 }}>
-            <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#333' }}>Total Calories</Text>
-            <Text style={{ fontSize: 24, fontWeight: 'bold', color: 'maroon' }}>{totalCalories}</Text>
-            <Button title="Clear Calories" onPress={handleClearCalories} />
-          </View>
-          <View style={{ alignItems: 'center', borderWidth: 2, borderColor: 'pink', padding: 10 }}>
-            <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#333' }}>Total Protein</Text>
-            <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#F79E4F' }}>{totalProtein}g</Text>
-            <Button title="Clear Protein" onPress={handleClearProtein} />
-          </View>
-        </View>
-
-        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginVertical: 10 }}>
-          <View style={{ marginLeft: 20 }}>
-            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Suggested Calories: {suggestedCalories.suggestedCalories}</Text>
-            <View style={{ width: '100%', height: 20, backgroundColor: 'lightgray', borderRadius: 5, marginTop: 5 }}>
-              <View style={{ width: `${suggestedCaloriesPercentage}%`, height: '100%', backgroundColor: 'purple', borderRadius: 5 }} />
+  
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+            <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Food:</Text>
+              <TextInput
+                style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
+                value={food}
+                onChangeText={handleFoodChange}
+              />
             </View>
-            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Suggested Protein: {suggestedProtein}g</Text>
-<Text style={{ fontSize: 100 }}>{calorieFace}</Text>
-</View>
-</View>
-<Button
-      title="Go to Profile"
-      onPress={() => navigation.navigate('Profile')}
-    />
-  </View>
-</TouchableWithoutFeedback>
-);
+            <View style={{ alignItems: 'center', marginHorizontal: 10 }}>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Calories:</Text>
+              <TextInput
+                style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
+                value={calories}
+                onChangeText={handleCaloriesChange}
+                keyboardType="numeric"
+                blurOnSubmit={true}
+              />
+            </View>
+          </View>
+  
+          <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
+            <CustomButton title="Get Food Nutrition" onPress={() => fetchNutritionData(food)} />
+            <View style={{ marginLeft: 10 }}>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Protein (g):</Text>
+              <TextInput
+                style={{ height: 40, width: 150, borderColor: 'gray', borderWidth: 1 }}
+                value={protein}
+                onChangeText={handleProteinChange}
+                keyboardType="numeric"
+                blurOnSubmit={true}
+              />
+            </View>
+          </View>
+  
+          <CustomButton title="Add Food Entry" onPress={handleAddCalories} />
+  
+          <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginVertical: 20 }}>
+            <View style={{ alignItems: 'center', borderWidth: 2, borderColor: 'pink', padding: 10 }}>
+              <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#333' }}>Total Calories</Text>
+              <Text style={{ fontSize: 24, fontWeight: 'bold', color: 'maroon' }}>{totalCalories}</Text>
+              <CustomButton title="Clear Calories" onPress={handleClearCalories} />
+            </View>
+            <View style={{ alignItems: 'center', borderWidth: 2, borderColor: 'pink', padding: 10 }}>
+              <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#333' }}>Total Protein</Text>
+              <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#F79E4F' }}>{totalProtein}g</Text>
+              <CustomButton title="Clear Protein" onPress={handleClearProtein} />
+            </View>
+          </View>
+  
+          <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginVertical: 10 }}>
+            <View style={{ marginLeft: 20 }}>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Suggested Calories: {suggestedCalories.suggestedCalories}</Text>
+              <View style={{ width: '100%', height: 20, backgroundColor: 'lightgray', borderRadius: 5, marginTop: 5 }}>
+                <View style={{ width: `${suggestedCaloriesPercentage}%`, height: '100%', backgroundColor: 'purple', borderRadius: 5 }} />
+              </View>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Suggested Protein: {suggestedProtein}g</Text>
+              <Text style={{ fontSize: 100 }}>{calorieFace}</Text>
+            </View>
+          </View>
+          <CustomButton title="Go to Profile" onPress={() => navigation.navigate('Profile')} />
+        </View>
+      </ScrollView>
+    </TouchableWithoutFeedback>
+  );
 };
 export default MainScreen;
