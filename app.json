@@ -1,10 +1,11 @@
 {
   "expo": {
-    "name": "calTrack",
+    "name": "CalTrack",
     "slug": "calTrack",
-    "version": "1.0.0",
+    "main": "App.js",
+    "version": "1.0.1",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/appstore.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
@@ -15,7 +16,8 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cal.Track"
     },
     "android": {
       "adaptiveIcon": {
@@ -25,6 +27,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "1a743a8f-0dbb-4720-a426-82f5e2d5e875"
+      }
     }
   }
 }
