@@ -27,28 +27,34 @@ const ProfileScreen = () => {
 
   useEffect(() => {
     const fetchProfileData = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('profiles1')
-          .select('*')
-          .eq('device_id', deviceId)
-          .order('id', { ascending: false })
-          .limit(1)
-          .single();
-  
-        if (error) {
-          console.error('Error fetching profile data:', error.message);
-        } else {
-          console.log('Profile data fetched:', data);
-          if (data) {
-            setSex(data.sex);
-            setAge(data.age.toString());
-            setBodyWeight(data.body_weight.toString());
-            setGoalWeight(data.goal_weight.toString());
+      if (deviceId) {
+        try {
+          const { data, error } = await supabase
+            .from('profiles1')
+            .select('*')
+            .eq('device_id', deviceId)
+            .order('id', { ascending: false })
+            .limit(1);
+    
+          if (error) {
+            console.error('Error fetching profile data:', error.message);
+          } else {
+            console.log('Profile data fetched:', data);
+            if (data && data.length > 0) {
+              const profile = data[0];
+              setSex(profile.sex);
+              setAge(profile.age.toString());
+              setBodyWeight(profile.body_weight.toString());
+              setGoalWeight(profile.goal_weight.toString());
+            } else {
+              console.log('No profile found for this device ID');
+              // Handle the case where no profile is found
+              // You might want to set default values or show a message to the user
+            }
           }
+        } catch (error) {
+          
         }
-      } catch (error) {
-        
       }
     };
   
@@ -88,7 +94,7 @@ const ProfileScreen = () => {
         ]);
 
       if (error) {
-        console.error('Error saving profile data:', error.message);
+        console.error('Unexpected error saving profile data:', error.message);
       } else {
         console.log('Profile data saved successfully:', data);
         navigation.navigate('Main');
